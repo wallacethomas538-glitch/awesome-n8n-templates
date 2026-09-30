@@ -1,0 +1,83 @@
+{
+  "name": "VektorFlow EventBus Ingress",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "vektorflow/eventbus",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "vf-eventbus-webhook",
+      "name": "VektorFlow EventBus Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -460,
+        0
+      ],
+      "webhookId": "vektorflow-eventbus"
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $json.body ?? $json;\nconst eventId = body.event_id ?? body.eventId;\nconst eventType = body.event_type ?? body.eventType;\nconst source = body.source;\nconst timestamp = body.timestamp;\nif (!eventId || !eventType || !source || !timestamp) {\n  throw new Error('Invalid VektorFlow event envelope: event_id, event_type, source, and timestamp are required.');\n}\nreturn [{ json: { event_id: eventId, event_type: eventType, source, timestamp, data: body.data ?? {} } }];"
+      },
+      "id": "vf-eventbus-validate",
+      "name": "Validate VektorFlow Event",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -160,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { ok: true, event_id: $json.event_id, event_type: $json.event_type } }}",
+        "options": {}
+      },
+      "id": "vf-eventbus-response",
+      "name": "Acknowledge Event",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        140,
+        0
+      ]
+    }
+  ],
+  "connections": {
+    "VektorFlow EventBus Webhook": {
+      "main": [
+        [
+          {
+            "node": "Validate VektorFlow Event",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate VektorFlow Event": {
+      "main": [
+        [
+          {
+            "node": "Acknowledge Event",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "vektorflow-eventbus-v1",
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "tags": []
+}
